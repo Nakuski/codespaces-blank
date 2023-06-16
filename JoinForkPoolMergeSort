@@ -1,0 +1,64 @@
+package Example3;
+
+import java.util.Arrays;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class Shit {
+    public static void main(String[] args) {
+        int[] array = ThreadLocalRandom.current().ints(50, 0, 50).toArray();
+        int buffer[] = new int[array.length];
+        System.out.println("Before - " + Arrays.toString(array));
+        ForkJoinPool executor = new ForkJoinPool(3);
+        executor.invoke(new FJPMergeSort(array, buffer));
+        System.out.println("After - " + Arrays.toString(array));
+    }
+}
+
+class FJPMergeSort extends RecursiveAction {
+    private final int[] buffer;
+    private final int[] data;
+    private final int begin;
+    private final int end;
+
+    public FJPMergeSort(int[] data, int[] buffer) {
+        this(data, buffer, 0, data.length - 1);
+    }
+
+    private FJPMergeSort(int[] data, int[] buffer, int begin, int end) {
+        this.data = data;
+        this.buffer = buffer;
+        this.begin = begin;
+        this.end = end;
+    }
+
+    @Override
+    protected void compute() {
+        if (begin >= end) return;
+        int mid = begin + (end - begin) / 2;
+        FJPMergeSort left = new FJPMergeSort(data, buffer, begin, mid);
+        FJPMergeSort right = new FJPMergeSort(data, buffer, mid + 1, end);
+        invokeAll(left, right);
+        merge(this.data, this.buffer, this.begin, mid, this.end);
+    }
+
+    private void merge(int[] data, int[] buffer, int begin, int mid, int end) {
+        for (int i = begin; i <= end; i++) {
+            buffer[i] = data[i];
+        }
+        int startingIndex = begin, serviseIndex = mid + 1;
+        for (int answerIndex = begin; answerIndex <= end; answerIndex++) {
+            if (startingIndex > mid) {
+                data[answerIndex] = buffer[serviseIndex++];
+            } else if (serviseIndex > end) {
+                data[answerIndex] = buffer[startingIndex++];
+            } else if (buffer[startingIndex] < buffer[serviseIndex]) {
+                data[answerIndex] = buffer[startingIndex++];
+            } else {
+                data[answerIndex] = buffer[serviseIndex++];
+            }
+        }
+    }
+}
+
